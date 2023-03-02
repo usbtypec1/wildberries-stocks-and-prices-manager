@@ -1,0 +1,1 @@
+from fixtures.workbooks import workbook_only_with_valid_stocks_worksheet
