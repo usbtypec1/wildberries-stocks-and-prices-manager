@@ -5,6 +5,7 @@ from pydantic import BaseModel
 __all__ = (
     'StocksWorksheetRow',
     'ParsedStocksWorksheet',
+    'StockToUpdate',
 )
 
 
@@ -19,3 +20,8 @@ class StocksWorksheetRow(BaseModel):
 class ParsedStocksWorksheet:
     rows: list[StocksWorksheetRow]
     error_row_numbers: list[int]
+
+
+class StockToUpdate(BaseModel):
+    sku: str
+    amount: int
