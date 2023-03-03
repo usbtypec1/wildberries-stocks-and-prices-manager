@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from pydantic import BaseModel
+from pydantic import BaseModel, conint
 
 __all__ = (
     'StocksWorksheetRow',
@@ -13,7 +13,7 @@ class StocksWorksheetRow(BaseModel):
     shop_name: str
     warehouse_id: int
     sku: str
-    stocks_amount: int
+    stocks_amount: conint(ge=0, le=1000)
 
 
 @dataclass(frozen=True, slots=True)
