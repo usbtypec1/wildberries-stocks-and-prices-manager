@@ -15,3 +15,27 @@ class WorkbookValidationError(ValidationError):
         super().__init__(*args)
         self.worksheet_name = worksheet_name
         self.row_number = row_number
+
+
+class WildberriesAPIError(Exception):
+    pass
+
+
+class UnauthorizedError(WildberriesAPIError):
+    pass
+
+
+class BadRequestError(WildberriesAPIError):
+    pass
+
+
+class PermissionDeniedError(WildberriesAPIError):
+    pass
+
+
+class NotFoundError(WildberriesAPIError):
+    pass
+
+
+class StocksUpdateError(WildberriesAPIError):
+    pass
