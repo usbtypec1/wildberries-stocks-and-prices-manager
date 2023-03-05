@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 from pydantic import BaseModel
 
 __all__ = (
@@ -7,7 +5,6 @@ __all__ = (
 )
 
 
-@dataclass(frozen=True, slots=True)
-class SupplierCredentials:
+class SupplierCredentials(BaseModel):
     shop_name: str
     api_key: str
