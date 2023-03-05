@@ -1,10 +1,17 @@
-from openpyxl.cell import ReadOnlyCell
+import collections
+from typing import TypeAlias, DefaultDict
+
+from openpyxl.cell.read_only import ReadOnlyCell
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
+from pydantic import ValidationError
 
 from core import exceptions, models
 
 __all__ = ('WorkbookParser',)
+
+StocksWorksheetRow: TypeAlias = tuple[ReadOnlyCell, ReadOnlyCell, ReadOnlyCell, ReadOnlyCell]
+PricesWorksheetRow: TypeAlias = tuple[ReadOnlyCell, ReadOnlyCell, ReadOnlyCell]
 
 
 class WorkbookParser:
@@ -12,51 +19,47 @@ class WorkbookParser:
     def __init__(self, workbook: Workbook):
         self.__workbook = workbook
 
-    def get_suppliers_credentials(self) -> list[models.SupplierCredentials]:
+    def __get_worksheet(self, name: str) -> Worksheet:
         try:
-            worksheet: Worksheet = self.__workbook['Ключи']
+            return self.__workbook[name]
         except KeyError:
-            raise exceptions.WorksheetMissingError(worksheet_name='Ключи')
+            raise exceptions.WorksheetMissingError(worksheet_name=name)
 
-        rows: tuple[tuple[ReadOnlyCell, ReadOnlyCell], ...] = worksheet['A2': F'B{worksheet.max_row}']
+    def get_stocks(self) -> list[models.WarehouseStocks]:
+        worksheet = self.__get_worksheet('Остатки')
 
-        shop_name_to_api_key: dict[str, str] = {}
-        for row in rows:
-            shop_name_cell, api_key_cell = row
+        rows: tuple[StocksWorksheetRow, ...] = worksheet['A2': f'C{worksheet.max_row}']
 
-            if not (shop_name := str(shop_name_cell.value)):
-                raise exceptions.WorkbookValidationError(
-                    'Отсутствует название магазина',
-                    worksheet_name='Ключи',
-                    row_number=shop_name_cell.row,
-                    column_number=shop_name_cell.column,
-                )
+        warehouse_id_to_stocks_to_update: DefaultDict[int, list[models.StockToUpdate]] = collections.defaultdict(list)
+        for row_number, row in enumerate(rows, start=2):
+            warehouse_id, sku, stocks_amount = [cell.value for cell in row]
+            try:
+                stock_to_update = models.StockToUpdate(sku=sku, amount=stocks_amount)
+            except ValidationError:
+                raise exceptions.WorkbookValidationError(worksheet_name='Остатки', row_number=row_number)
+            else:
+                warehouse_id_to_stocks_to_update[warehouse_id].append(stock_to_update)
 
-            if not (api_key := str(shop_name_cell.value)):
-                raise exceptions.WorkbookValidationError(
-                    'Отсутствует API ключ',
-                    worksheet_name='Ключи',
-                    row_number=api_key_cell.row,
-                    column_number=api_key_cell.column,
-                )
-
-            if shop_name in shop_name_to_api_key:
-                raise exceptions.WorkbookValidationError(
-                    'Дублирующиеся названия магазинов',
-                    worksheet_name='Ключи',
-                    row_number=shop_name_cell.row,
-                    column_number=shop_name_cell.column,
-                )
-
-            shop_name_to_api_key[shop_name] = api_key
-
-        return [
-            models.SupplierCredentials(shop_name=shop_name, api_key=api_key)
-            for shop_name, api_key in shop_name_to_api_key.items()
+        warehouses_stocks: list[models.WarehouseStocks] = [
+            models.WarehouseStocks(warehouse_id=warehouse_id, stocks=stocks_to_update)
+            for warehouse_id, stocks_to_update in warehouse_id_to_stocks_to_update.items()
         ]
+        return warehouses_stocks
 
-    def get_stocks(self):
-        pass
+    def get_prices(self) -> list[models.NomenclaturePriceToUpdate]:
+        worksheet = self.__get_worksheet('Цены')
 
-    def get_prices(self):
-        pass
+        rows: tuple[PricesWorksheetRow, ...] = worksheet['A2': f'B{worksheet.max_row}']
+
+        nomenclature_prices: list[models.NomenclaturePriceToUpdate] = []
+        for row_number, row in enumerate(rows, start=2):
+            nomenclature_id, price = [cell.value for cell in row]
+
+            try:
+                nomenclature_price = models.NomenclaturePriceToUpdate(nomenclature_id=nomenclature_id, price=price)
+            except ValidationError:
+                raise exceptions.WorkbookValidationError(worksheet_name='Остатки', row_number=row_number)
+            else:
+                nomenclature_prices.append(nomenclature_price)
+
+        return nomenclature_prices

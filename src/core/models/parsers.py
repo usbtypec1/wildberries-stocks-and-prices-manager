@@ -1,10 +1,22 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, PositiveInt
 
 __all__ = (
-    'SupplierCredentials',
+    'StockToUpdate',
+    'WarehouseStocks',
+    'NomenclaturePriceToUpdate',
 )
 
 
-class SupplierCredentials(BaseModel):
-    shop_name: str
-    api_key: str
+class StockToUpdate(BaseModel):
+    sku: str
+    amount: int
+
+
+class WarehouseStocks(BaseModel):
+    warehouse_id: int
+    stocks: list[StockToUpdate]
+
+
+class NomenclaturePriceToUpdate(BaseModel):
+    nomenclature_id: int
+    price: PositiveInt
