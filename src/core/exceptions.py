@@ -1,3 +1,6 @@
+import httpx
+
+
 class ValidationError(Exception):
     pass
 
@@ -18,7 +21,10 @@ class WorkbookValidationError(ValidationError):
 
 
 class WildberriesAPIError(Exception):
-    pass
+
+    def __init__(self, *args, response: httpx.Response):
+        super().__init__(*args)
+        self.response = response
 
 
 class UnauthorizedError(WildberriesAPIError):
