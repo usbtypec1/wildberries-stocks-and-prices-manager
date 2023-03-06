@@ -36,12 +36,20 @@ class WorkbookParser:
             try:
                 int(warehouse_id)
             except ValueError:
-                raise exceptions.WorkbookValidationError(worksheet_name='Остатки', row_number=row_number)
+                raise exceptions.WorkbookValidationError(
+                    'ID склада должно быть числом',
+                    worksheet_name='Остатки',
+                    row_number=row_number,
+                )
 
             try:
                 stock_to_update = models.StockToUpdate(sku=sku, amount=stocks_amount)
             except ValidationError:
-                raise exceptions.WorkbookValidationError(worksheet_name='Остатки', row_number=row_number)
+                raise exceptions.WorkbookValidationError(
+                    'Неправильные sku или количество остатков',
+                    worksheet_name='Остатки',
+                    row_number=row_number,
+                )
             else:
                 warehouse_id_to_stocks_to_update[warehouse_id].append(stock_to_update)
 
@@ -63,7 +71,11 @@ class WorkbookParser:
             try:
                 nomenclature_price = models.NomenclaturePriceToUpdate(nomenclature_id=nomenclature_id, price=price)
             except ValidationError:
-                raise exceptions.WorkbookValidationError(worksheet_name='Остатки', row_number=row_number)
+                raise exceptions.WorkbookValidationError(
+                    'Неправильные nm ID или цена',
+                    worksheet_name='Остатки',
+                    row_number=row_number,
+                )
             else:
                 nomenclature_prices.append(nomenclature_price)
 
