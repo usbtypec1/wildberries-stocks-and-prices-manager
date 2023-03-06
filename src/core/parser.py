@@ -34,6 +34,11 @@ class WorkbookParser:
         for row_number, row in enumerate(rows, start=2):
             warehouse_id, sku, stocks_amount = [cell.value for cell in row]
             try:
+                int(warehouse_id)
+            except ValueError:
+                raise exceptions.WorkbookValidationError(worksheet_name='Остатки', row_number=row_number)
+
+            try:
                 stock_to_update = models.StockToUpdate(sku=sku, amount=stocks_amount)
             except ValidationError:
                 raise exceptions.WorkbookValidationError(worksheet_name='Остатки', row_number=row_number)
