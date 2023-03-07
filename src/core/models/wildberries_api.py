@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field
 
 __all__ = (
     'QuantityStatus',
-    'NomenclaturePrice'
+    'NomenclaturePrice',
+    'Warehouse',
 )
 
 
@@ -19,3 +20,8 @@ class NomenclaturePrice(BaseModel):
     price: int
     discount: int
     promocode: int = Field(alias='promoCode')
+
+
+class Warehouse(BaseModel):
+    id: int
+    name: str
