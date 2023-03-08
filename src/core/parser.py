@@ -35,7 +35,7 @@ class WorkbookParser:
             warehouse_id, sku, stocks_amount = [cell.value for cell in row]
             try:
                 int(warehouse_id)
-            except ValueError:
+            except (ValueError, TypeError):
                 raise exceptions.WorkbookValidationError(
                     'ID склада должно быть числом',
                     worksheet_name='Остатки',

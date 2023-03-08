@@ -1,4 +1,5 @@
 import collections
+import logging
 import pathlib
 from typing import DefaultDict
 
@@ -27,7 +28,10 @@ def run(api_key: str, workbook_file_path: str | pathlib.Path):
 
         for warehouse_stocks in warehouses_stocks:
             for stocks_group in grouper(warehouse_stocks.stocks, n=100):
-                wildberries_api_service.update_stocks(warehouse_stocks.warehouse_id, stocks_group)
+                try:
+                    wildberries_api_service.update_stocks(warehouse_stocks.warehouse_id, stocks_group)
+                except Exception:
+                    logging.exception('Error while updating stocks')
 
 
 def download_prices(api_key: str):

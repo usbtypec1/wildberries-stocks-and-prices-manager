@@ -34,6 +34,8 @@ class WildberriesAPIService:
     def get_warehouses(self) -> tuple[models.Warehouse, ...]:
         url = '/api/v2/warehouses'
         response = self.__api_client.get(url)
+        if response.status_code == 401:
+            raise exceptions.UnauthorizedError(response=response)
         response_data = response.json()
         return parse_obj_as(tuple[models.Warehouse, ...], response_data)
 
