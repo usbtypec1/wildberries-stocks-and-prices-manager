@@ -5,6 +5,7 @@ from typing import Iterable, Generator
 import httpx
 from pydantic import parse_obj_as
 
+import core.models.wildberries_api
 from core import exceptions, models
 
 __all__ = ('WildberriesAPIService',)
@@ -15,7 +16,7 @@ class WildberriesAPIService:
     def __init__(self, api_client: httpx.Client):
         self.__api_client = api_client
 
-    def update_stocks(self, warehouse_id: int, stocks: Iterable[models.StockToUpdate]):
+    def update_stocks(self, warehouse_id: int, stocks: Iterable[core.models.wildberries_api.StocksBySku]):
         url = f'/api/v3/stocks/{warehouse_id}'
         request_data = {'stocks': [{'sku': stock.sku, 'amount': stock.amount} for stock in stocks]}
         response = self.__api_client.put(url, json=request_data)
@@ -39,12 +40,13 @@ class WildberriesAPIService:
         response_data = response.json()
         return parse_obj_as(tuple[models.Warehouse, ...], response_data)
 
-    def get_stocks_by_skus(self, *, warehouse_id: int, skus: Iterable[str]) -> tuple[models.StockToUpdate, ...]:
+    def get_stocks_by_skus(self, *, warehouse_id: int, skus: Iterable[str]) -> tuple[
+        core.models.wildberries_api.StocksBySku, ...]:
         url = f'/api/v3/stocks/{warehouse_id}'
         request_data = {'skus': tuple(skus)}
         response = self.__api_client.post(url, json=request_data)
         response_data = response.json()
-        return parse_obj_as(tuple[models.StockToUpdate, ...], response_data['stocks'])
+        return parse_obj_as(tuple[core.models.wildberries_api.StocksBySku, ...], response_data['stocks'])
 
     def get_nomenclatures(self) -> Generator[list[dict], None, None]:
         pagination_data = None

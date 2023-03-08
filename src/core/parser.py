@@ -6,6 +6,7 @@ from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 from pydantic import ValidationError
 
+import core.models.wildberries_api
 from core import exceptions, models
 
 __all__ = ('WorkbookParser',)
@@ -30,7 +31,8 @@ class WorkbookParser:
 
         rows: tuple[StocksWorksheetRow, ...] = worksheet['A2': f'C{worksheet.max_row}']
 
-        warehouse_id_to_stocks_to_update: DefaultDict[int, list[models.StockToUpdate]] = collections.defaultdict(list)
+        warehouse_id_to_stocks_to_update: DefaultDict[int, list[
+            core.models.wildberries_api.StocksBySku]] = collections.defaultdict(list)
         for row_number, row in enumerate(rows, start=2):
             warehouse_id, sku, stocks_amount = [cell.value for cell in row]
             try:
@@ -43,7 +45,7 @@ class WorkbookParser:
                 )
 
             try:
-                stock_to_update = models.StockToUpdate(sku=sku, amount=stocks_amount)
+                stock_to_update = core.models.wildberries_api.StocksBySku(sku=sku, amount=stocks_amount)
             except ValidationError:
                 raise exceptions.WorkbookValidationError(
                     'Неправильные sku или количество остатков',

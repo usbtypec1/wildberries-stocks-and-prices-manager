@@ -1,20 +1,16 @@
 from pydantic import BaseModel, PositiveInt
 
+from core.models.wildberries_api import StocksBySku
+
 __all__ = (
-    'StockToUpdate',
     'WarehouseStocks',
     'NomenclaturePriceToUpdate',
 )
 
 
-class StockToUpdate(BaseModel):
-    sku: str
-    amount: int
-
-
 class WarehouseStocks(BaseModel):
     warehouse_id: int
-    stocks: list[StockToUpdate]
+    stocks: list[StocksBySku]
 
 
 class NomenclaturePriceToUpdate(BaseModel):

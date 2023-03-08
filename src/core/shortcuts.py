@@ -5,6 +5,7 @@ from typing import DefaultDict
 
 import openpyxl
 
+import core.models.wildberries_api
 from core import models
 from core.helpers import grouper
 from core.parser import WorkbookParser
@@ -45,7 +46,8 @@ def download_prices(api_key: str):
 
 
 def download_stocks(api_key: str):
-    warehouse_id_to_stocks_by_skus: DefaultDict[int, list[models.StockToUpdate]] = collections.defaultdict(list)
+    warehouse_id_to_stocks_by_skus: DefaultDict[int, list[
+        core.models.wildberries_api.StocksBySku]] = collections.defaultdict(list)
     skus: set[str] = set()
 
     with closing_wildberries_api_http_client(api_key=api_key) as http_client:

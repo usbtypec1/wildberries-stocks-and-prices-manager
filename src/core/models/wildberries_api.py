@@ -25,3 +25,8 @@ class NomenclaturePrice(BaseModel):
 class Warehouse(BaseModel):
     id: int
     name: str
+
+
+class StocksBySku(BaseModel):
+    sku: str
+    amount: int
