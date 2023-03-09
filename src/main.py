@@ -1,14 +1,11 @@
-import logging
+from rich.console import Console
 
-from ui.controller import handle_event
-from ui.view import AppWindow
+import cli
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
-    with AppWindow() as app_window:
-        for event, values in app_window.run():
-            handle_event(app_window, event, values)
+    console = Console(log_path=False)
+    cli.run(console)
 
 
 if __name__ == '__main__':
