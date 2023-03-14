@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import pathlib
 from typing import Iterable
@@ -6,6 +7,19 @@ import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 
 from core import models
+
+
+def generate_template_file(file_path: pathlib.Path) -> None:
+    workbook = openpyxl.Workbook(write_only=True)
+
+    with contextlib.closing(workbook):
+        prices_worksheet: Worksheet = workbook.create_sheet('Цены')
+        prices_worksheet.append(('nm ID', 'Новая цена'))
+
+        stocks_worksheet: Worksheet = workbook.create_sheet('Остатки')
+        stocks_worksheet.append(('ID склада', 'sku', 'Количество остатков'))
+
+        workbook.save(file_path)
 
 
 class Template:
