@@ -15,7 +15,7 @@ from core.helpers import grouper
 from core.parser import WorkbookParser
 from core.services.http_clients import closing_wildberries_api_http_client
 from core.services.wildberries_api import WildberriesAPIService
-from core.templates import Template
+from core.templates import Template, generate_template_file
 from core.validators import validate_api_key
 
 
@@ -196,7 +196,6 @@ def run(console: Console):
         case 5:
             file_path = pathlib.Path('./шаблон.xlsx')
             require_file_not_exists(console, file_path)
-            with Template(file_path) as template:
-                template.save()
+            generate_template_file(file_path)
             console.log('Шаблон сохранен')
     terminate(console)
