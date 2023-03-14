@@ -48,7 +48,7 @@ class WildberriesAPIService:
         response_data = response.json()
         return parse_obj_as(tuple[core.models.wildberries_api.StocksBySku, ...], response_data['stocks'])
 
-    def get_nomenclatures(self) -> Generator[list[dict], None, None]:
+    def get_nomenclatures(self) -> Generator[list[models.Nomenclature], None, None]:
         pagination_data = None
         while True:
             body = {
@@ -71,7 +71,7 @@ class WildberriesAPIService:
                     break
             data = response.json()['data']
             total = data['cursor']['total']
-            yield data['cards']
+            yield parse_obj_as(list[models.Nomenclature], data['cards'])
             pagination_data = {'updatedAt': data['cursor']['updatedAt'], 'nmID': data['cursor']['nmID']}
             if total < 1000:
                 break
