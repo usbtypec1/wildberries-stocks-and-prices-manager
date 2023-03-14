@@ -56,7 +56,7 @@ class WorkbookParser:
                 warehouse_id_to_stocks_to_update[warehouse_id].append(stock_to_update)
 
         warehouses_stocks: list[models.WarehouseStocks] = [
-            models.WarehouseStocks(warehouse_id=warehouse_id, stocks=stocks_to_update)
+            models.WarehouseStocks(warehouse_id=warehouse_id, stocks=stocks_to_update, category='')
             for warehouse_id, stocks_to_update in warehouse_id_to_stocks_to_update.items()
         ]
         return warehouses_stocks
