@@ -69,8 +69,9 @@ def upload_stocks(console: Console, api_key: str, file_path: str | pathlib.Path)
 
 
 def download_stocks(console: Console, api_key: str, file_path: str | pathlib.Path):
-    warehouse_id_to_stocks_by_skus: DefaultDict[int, list[models.StocksBySku]] = collections.defaultdict(list)
-    skus: set[str] = set()
+    warehouse_id_and_category_to_stocks_by_skus: DefaultDict[str, list[models.StocksBySku]] = collections.defaultdict(
+        list)
+    category_to_skus: DefaultDict[str, set[str]] = collections.defaultdict(set)
 
     with closing_wildberries_api_http_client(api_key=api_key) as http_client:
         wildberries_api_service = WildberriesAPIService(http_client)
@@ -82,29 +83,41 @@ def download_stocks(console: Console, api_key: str, file_path: str | pathlib.Pat
                 description='Загрузка всех skus...',
                 console=console,
         ):
-            skus |= {
-                sku
-                for nomenclature in nomenclatures
-                for size in nomenclature.sizes
-                for sku in size.skus
-            }
+            for nomenclature in nomenclatures:
+                category_to_skus[nomenclature.object] |= {
+                    sku
+                    for size in nomenclature.sizes
+                    for sku in size.skus
+                }
 
-        for skus_group in track(
-                sequence=grouper(skus, n=1000),
-                description='Загрузка остатков по skus',
-                console=console,
-        ):
-            for warehouse in warehouses:
-                stocks_by_skus = wildberries_api_service.get_stocks_by_skus(warehouse_id=warehouse.id,
-                                                                            skus=skus_group)
-                if stocks_by_skus:
-                    warehouse_id_to_stocks_by_skus[warehouse.id] += stocks_by_skus
-                    break
+        for category, skus in category_to_skus.items():
 
-    warehouses_stocks = [
-        models.WarehouseStocks(warehouse_id=warehouse_id, stocks=stocks_by_skus)
-        for warehouse_id, stocks_by_skus in warehouse_id_to_stocks_by_skus.items()
-    ]
+            for skus_group in track(
+                    sequence=grouper(skus, n=1000),
+                    description=f'Загрузка остатков по категории {category}',
+                    console=console,
+            ):
+                for warehouse in warehouses:
+                    stocks_by_skus = wildberries_api_service.get_stocks_by_skus(
+                        warehouse_id=warehouse.id, skus=skus_group,
+                    )
+                    if stocks_by_skus:
+                        warehouse_id_and_category = f'{warehouse.id}@{category}'
+                        warehouse_id_and_category_to_stocks_by_skus[warehouse_id_and_category] += stocks_by_skus
+                        break
+
+    warehouses_stocks = []
+    for warehouse_id_and_category, stocks_by_skus in warehouse_id_and_category_to_stocks_by_skus.items():
+        warehouse_id, category = warehouse_id_and_category.split('@')
+        warehouse_id = int(warehouse_id)
+
+        warehouses_stocks.append(
+            models.WarehouseStocks(
+                warehouse_id=warehouse_id,
+                category=category,
+                stocks=stocks_by_skus,
+            )
+        )
     generate_stocks_report_file(file_path=file_path, warehouses_stocks=warehouses_stocks)
     console.log('Остатки выгружены')
 

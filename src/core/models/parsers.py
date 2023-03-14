@@ -10,6 +10,7 @@ __all__ = (
 
 class WarehouseStocks(BaseModel):
     warehouse_id: int
+    category: str
     stocks: list[StocksBySku]
 
 

@@ -54,10 +54,10 @@ def generate_stocks_report_file(
 
     with contextlib.closing(workbook):
         worksheet: Worksheet = workbook.create_sheet('Остатки')
-        worksheet.append(('ID склада', 'sku', 'Количество остатков'))
+        worksheet.append(('ID склада', 'Категория', 'sku', 'Количество остатков'))
 
         for warehouse_stocks in warehouses_stocks:
             for stock in warehouse_stocks.stocks:
-                worksheet.append((warehouse_stocks.warehouse_id, stock.sku, stock.amount))
+                worksheet.append((warehouse_stocks.warehouse_id, warehouse_stocks.category, stock.sku, stock.amount))
 
         workbook.save(file_path)
