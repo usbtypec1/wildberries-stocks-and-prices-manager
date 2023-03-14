@@ -5,6 +5,7 @@ from typing import DefaultDict
 
 import openpyxl
 from openpyxl.utils.exceptions import InvalidFileException
+from openpyxl.workbook import Workbook
 from rich.console import Console
 from rich.progress import track
 from rich.prompt import Prompt, Confirm
@@ -15,7 +16,7 @@ from core.helpers import grouper
 from core.parser import WorkbookParser
 from core.services.http_clients import closing_wildberries_api_http_client
 from core.services.wildberries_api import WildberriesAPIService
-from core.templates import Template, generate_template_file
+from core.templates import generate_stocks_report_file, generate_template_file, generate_prices_report_file
 from core.validators import validate_api_key
 
 
@@ -84,9 +85,8 @@ def download_stocks(console: Console, api_key: str, file_path: str | pathlib.Pat
             skus |= {
                 sku
                 for nomenclature in nomenclatures
-                for size in nomenclature['sizes']
-                for sku in size['skus']
-                if sku
+                for size in nomenclature.sizes
+                for sku in size.skus
             }
 
         for skus_group in track(
@@ -105,31 +105,54 @@ def download_stocks(console: Console, api_key: str, file_path: str | pathlib.Pat
         models.WarehouseStocks(warehouse_id=warehouse_id, stocks=stocks_by_skus)
         for warehouse_id, stocks_by_skus in warehouse_id_to_stocks_by_skus.items()
     ]
-    with Template(file_path) as template:
-        template.add_stocks_rows(warehouses_stocks)
+    generate_stocks_report_file(file_path=file_path, warehouses_stocks=warehouses_stocks)
     console.log('Остатки выгружены')
 
 
 def download_prices(console: Console, api_key: str, file_path: str | pathlib.Path):
+    category_to_nomenclature_prices: DefaultDict[str, list[models.NomenclaturePrice]] = collections.defaultdict(list)
+
     with closing_wildberries_api_http_client(api_key=api_key) as http_client:
         wildberries_api_service = WildberriesAPIService(http_client)
+
         with console.status('Загрузка цен...', spinner='bouncingBall'):
             nomenclature_prices = wildberries_api_service.get_prices(models.QuantityStatus.ANY)
 
-    with Template(file_path) as template:
-        template.add_prices_rows(nomenclature_prices)
+        nomenclature_id_to_nomenclature_price: dict[int, models.NomenclaturePrice] = {
+            nomenclature_price.nomenclature_id: nomenclature_price
+            for nomenclature_price in nomenclature_prices
+        }
+
+        for nomenclatures in track(wildberries_api_service.get_nomenclatures()):
+
+            for nomenclature in nomenclatures:
+                nomenclature_price = nomenclature_id_to_nomenclature_price.get(nomenclature.id)
+                if nomenclature_price is None:
+                    continue
+                category_to_nomenclature_prices[nomenclature.object].append(nomenclature_price)
+
+    categories_prices = [
+        models.CategoryPrices(
+            category_name=category,
+            nomenclature_prices=nomenclature_prices,
+        ) for category, nomenclature_prices in category_to_nomenclature_prices.items()
+    ]
+
+    generate_prices_report_file(file_path=file_path, categories_prices=categories_prices)
     console.log('Цены выгружены')
 
 
 def validate_excel_file(console: Console, file_path: pathlib.Path):
     try:
-        openpyxl.load_workbook(file_path)
+        workbook: Workbook = openpyxl.load_workbook(file_path)
     except InvalidFileException:
         console.print(f'[b][u]{file_path.name}[/u][/b] не является excel файлом')
+    else:
+        workbook.close()
 
 
 def terminate(console: Console):
-    console.print('Goodbye')
+    Prompt.ask('Goodbye', console=console)
     exit(0)
 
 
