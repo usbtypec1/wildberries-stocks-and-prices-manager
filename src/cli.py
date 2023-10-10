@@ -1,6 +1,7 @@
 import collections
 import logging
 import pathlib
+import time
 from typing import DefaultDict
 
 import openpyxl
@@ -32,7 +33,7 @@ def upload_prices(console: Console, api_key: str, file_path: str | pathlib.Path)
     console.log('Цены считаны из файла')
 
     with closing_wildberries_api_http_client(api_key=api_key) as http_client:
-        wildberries_api_service = WildberriesAPIService(http_client)
+        wildberries_api_service = WildberriesAPIService(http_client, console)
 
         for nomenclature_prices_group in track(
                 sequence=tuple(grouper(nomenclature_prices, n=1000)),
@@ -53,7 +54,7 @@ def upload_stocks(console: Console, api_key: str, file_path: str | pathlib.Path)
     console.log('Остатки считаны из файла')
 
     with closing_wildberries_api_http_client(api_key=api_key) as http_client:
-        wildberries_api_service = WildberriesAPIService(http_client)
+        wildberries_api_service = WildberriesAPIService(http_client, console)
 
         for warehouse_stocks in warehouses_stocks:
             console.log(f'Загрузка остатков в складе №{warehouse_stocks.warehouse_id}')
@@ -74,12 +75,16 @@ def download_stocks(console: Console, api_key: str, file_path: str | pathlib.Pat
     category_to_skus: DefaultDict[str, set[str]] = collections.defaultdict(set)
 
     with closing_wildberries_api_http_client(api_key=api_key) as http_client:
-        wildberries_api_service = WildberriesAPIService(http_client)
+        wildberries_api_service = WildberriesAPIService(http_client, console)
 
         warehouses = wildberries_api_service.get_warehouses()
         console.log('Информация о складах загружена')
+
+        for warehouse in warehouses:
+            console.log(f'Склад {warehouse.name} - ID {warehouse.id}')
+
         for nomenclatures in track(
-                sequence=wildberries_api_service.get_nomenclatures(),
+                sequence=wildberries_api_service.iter_nomenclatures(),
                 description='Загрузка всех skus...',
                 console=console,
         ):
@@ -126,7 +131,7 @@ def download_prices(console: Console, api_key: str, file_path: str | pathlib.Pat
     category_to_nomenclature_prices: DefaultDict[str, list[models.NomenclaturePrice]] = collections.defaultdict(list)
 
     with closing_wildberries_api_http_client(api_key=api_key) as http_client:
-        wildberries_api_service = WildberriesAPIService(http_client)
+        wildberries_api_service = WildberriesAPIService(http_client, console)
 
         with console.status('Загрузка цен...', spinner='bouncingBall'):
             nomenclature_prices = wildberries_api_service.get_prices(models.QuantityStatus.ANY)
@@ -136,7 +141,7 @@ def download_prices(console: Console, api_key: str, file_path: str | pathlib.Pat
             for nomenclature_price in nomenclature_prices
         }
 
-        for nomenclatures in track(wildberries_api_service.get_nomenclatures()):
+        for nomenclatures in track(wildberries_api_service.iter_nomenclatures()):
 
             for nomenclature in nomenclatures:
                 nomenclature_price = nomenclature_id_to_nomenclature_price.get(nomenclature.id)
@@ -175,7 +180,7 @@ def require_api_key(console: Console) -> str:
         try:
             validate_api_key(api_key)
         except exceptions.ValidationError as error:
-            console.print(str(error))
+            console.print('Неправильный API ключ')
         else:
             return api_key
 
