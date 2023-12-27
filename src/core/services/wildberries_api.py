@@ -35,6 +35,7 @@ class WildberriesAPIService:
             403: exceptions.PermissionDeniedError,
             404: exceptions.NotFoundError,
             409: exceptions.StocksUpdateError,
+            429: exceptions.TooManyRequestsError,
         }
         exception_class = status_code_to_exception_class.get(
             response.status_code, exceptions.BadRequestError)
@@ -49,8 +50,8 @@ class WildberriesAPIService:
         return parse_obj_as(tuple[models.Warehouse, ...], response_data)
 
     def get_stocks_by_skus(self, *, warehouse_id: int, skus: Iterable[str]) -> \
-    tuple[
-        core.models.wildberries_api.StocksBySku, ...]:
+            tuple[
+                core.models.wildberries_api.StocksBySku, ...]:
         while True:
             url = f'/api/v3/stocks/{warehouse_id}'
             request_data = {'skus': tuple(skus)}
@@ -106,17 +107,17 @@ class WildberriesAPIService:
         response = self.__api_client.get('/public/api/v1/info',
                                          params=request_query_params)
         if response.status_code == 401:
-            raise exceptions.UnauthorizedError
+            raise exceptions.UnauthorizedError(response=response)
         response_data = response.json()
         return parse_obj_as(tuple[models.NomenclaturePrice, ...], response_data)
 
     def update_prices(self, nomenclature_prices: Iterable[
         models.NomenclaturePriceToUpdate]) -> bool:
         request_data = [{
-                            'nmId': nomenclature_price.nomenclature_id,
-                            'price': nomenclature_price.price
-                        }
-                        for nomenclature_price in nomenclature_prices]
+            'nmId': nomenclature_price.nomenclature_id,
+            'price': nomenclature_price.price
+        }
+            for nomenclature_price in nomenclature_prices]
         response = self.__api_client.post('/public/api/v1/prices',
                                           json=request_data)
         logging.info(response.text)

@@ -45,3 +45,7 @@ class NotFoundError(WildberriesAPIError):
 
 class StocksUpdateError(WildberriesAPIError):
     pass
+
+
+class TooManyRequestsError(WildberriesAPIError):
+    pass
