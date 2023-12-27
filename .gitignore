@@ -162,3 +162,8 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+src/выгрузка остатков.xlsx
+src/выгрузка цен.xlsx
+src/остатки.xlsx
+src/цены.xlsx
+src/шаблон.xlsx
