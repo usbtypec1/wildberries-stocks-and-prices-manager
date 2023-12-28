@@ -1,0 +1,120 @@
+from collections.abc import Iterable, Generator
+
+import httpx
+
+from core.enums import QuantityStatus
+from core.helpers.http import handle_error_status_code
+from core.helpers.parsers import try_parse_response_json
+from core.models import (
+    StocksBySku,
+    NomenclaturePriceToUpdate,
+    WildberriesHTTPClient,
+)
+
+__all__ = ('WildberriesAPIConnection',)
+
+
+class WildberriesAPIConnection:
+    """
+    Provides connection to Wildberries API methods.
+    Each method represents API call on the Wildberries side
+    and returns httpx.Response.
+    In case of error (based on status code) raises corresponding exception.
+    """
+
+    def __init__(
+            self,
+            api_client: WildberriesHTTPClient,
+    ):
+        self.__api_client = api_client
+
+    def update_stocks(
+            self,
+            *,
+            warehouse_id: int,
+            stocks: Iterable[StocksBySku],
+    ):
+        url = f'/api/v3/stocks/{warehouse_id}'
+        request_data = {
+            'stocks': [
+                {
+                    'sku': stock.sku,
+                    'amount': stock.amount,
+                } for stock in stocks
+            ]
+        }
+        response = self.__api_client.put(url, json=request_data)
+        handle_error_status_code(response)
+
+    def get_warehouses(self) -> httpx.Response:
+        url = '/api/v3/warehouses'
+        response = self.__api_client.get(url)
+        handle_error_status_code(response)
+        return response
+
+    def get_stocks_by_skus(
+            self,
+            *,
+            warehouse_id: int,
+            skus: Iterable[str],
+    ) -> httpx.Response:
+        url = f'/api/v3/stocks/{warehouse_id}'
+        request_data = {'skus': tuple(skus)}
+        response = self.__api_client.post(url, json=request_data)
+        handle_error_status_code(response)
+        return response
+
+    def iter_nomenclatures(self) -> Generator[httpx.Response, None, None]:
+        pagination_data = None
+        url = '/content/v1/cards/cursor/list'
+
+        while True:
+            body = {
+                "sort": {
+                    "cursor": {
+                        "limit": 1000,
+                    },
+                    "filter": {
+                        "withPhoto": -1,
+                    },
+                },
+            }
+            if pagination_data is not None:
+                body['sort']['cursor'] |= pagination_data
+
+            response = self.__api_client.post(url, json=body)
+
+            handle_error_status_code(response)
+            yield response
+
+            response_data = try_parse_response_json(response)
+
+            pagination_data = {
+                'updatedAt': response_data['cursor']['updatedAt'],
+                'nmID': response_data['cursor']['nmID']
+            }
+
+            if response_data['cursor']['total'] < 1000:
+                break
+
+    def get_prices(self, quantity_status: QuantityStatus) -> httpx.Response:
+        request_query_params = {'quantity': quantity_status.value}
+        url = '/public/api/v1/prices'
+        response = self.__api_client.get(url, params=request_query_params)
+        handle_error_status_code(response)
+        return response
+
+    def update_prices(
+            self,
+            nomenclature_prices: Iterable[NomenclaturePriceToUpdate],
+    ) -> httpx.Response:
+        request_data = [
+            {
+                'nmId': nomenclature_price.nomenclature_id,
+                'price': nomenclature_price.price
+            } for nomenclature_price in nomenclature_prices
+        ]
+        url = '/public/api/v1/prices'
+        response = self.__api_client.post(url, json=request_data)
+        handle_error_status_code(response)
+        return response
