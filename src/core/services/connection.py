@@ -84,21 +84,17 @@ class WildberriesAPIConnection:
 
     def iter_nomenclatures(self) -> Generator[httpx.Response, None, None]:
         pagination_data = None
-        url = '/content/v1/cards/cursor/list'
+        url = '/content/v2/get/cards/list'
 
         while True:
             body = {
-                "sort": {
-                    "cursor": {
-                        "limit": 1000,
-                    },
-                    "filter": {
-                        "withPhoto": -1,
-                    },
+                'settings': {
+                    'cursor': {'limit': 1000},
+                    'filter': {'withPhoto': -1},
                 },
             }
             if pagination_data is not None:
-                body['sort']['cursor'] |= pagination_data
+                body['settings']['cursor'] = {'limit': 1000} | pagination_data
 
             response = self.__api_client.post(
                 url=url,
