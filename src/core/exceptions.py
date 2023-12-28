@@ -15,12 +15,12 @@ class WorksheetMissingError(ValidationError):
         return f'Worksheet {self.worksheet_name!r} is missing'
 
 
+@dataclass(frozen=True, slots=True)
 class WorkbookValidationError(ValidationError):
+    message: str
 
-    def __init__(self, *args, worksheet_name: str, row_number: int):
-        super().__init__(*args)
-        self.worksheet_name = worksheet_name
-        self.row_number = row_number
+    def __str__(self):
+        return f'Workbook validation error: {self.message}'
 
 
 @dataclass(frozen=True, slots=True)
