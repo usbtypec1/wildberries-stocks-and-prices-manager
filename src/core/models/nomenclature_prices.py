@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, PositiveInt
 
-__all__ = ('NomenclaturePrice',)
+__all__ = ('NomenclaturePrice', 'NomenclaturePriceToUpdate')
 
 
 class NomenclaturePrice(BaseModel):
