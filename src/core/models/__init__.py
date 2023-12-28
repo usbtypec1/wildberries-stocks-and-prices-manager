@@ -1,4 +1,5 @@
 from .category_prices import *
+from .http_clients import *
 from .nomenclature_prices import *
 from .nomenclature_sizes import *
 from .nomenclatures import *
