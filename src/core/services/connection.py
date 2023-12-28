@@ -1,4 +1,5 @@
 from collections.abc import Iterable, Generator
+from functools import cached_property
 
 import httpx
 
@@ -25,8 +26,14 @@ class WildberriesAPIConnection:
     def __init__(
             self,
             api_client: WildberriesHTTPClient,
+            token: str,
     ):
         self.__api_client = api_client
+        self.__token = token
+
+    @cached_property
+    def headers(self) -> dict[str, str]:
+        return {'Authorization': f'Bearer {self.__token}'}
 
     def update_stocks(
             self,
@@ -43,12 +50,19 @@ class WildberriesAPIConnection:
                 } for stock in stocks
             ]
         }
-        response = self.__api_client.put(url, json=request_data)
+        response = self.__api_client.put(
+            url=url,
+            json=request_data,
+            headers=self.headers,
+        )
         handle_error_status_code(response)
 
     def get_warehouses(self) -> httpx.Response:
         url = '/api/v3/warehouses'
-        response = self.__api_client.get(url)
+        response = self.__api_client.get(
+            url=url,
+            headers=self.headers,
+        )
         handle_error_status_code(response)
         return response
 
@@ -60,7 +74,11 @@ class WildberriesAPIConnection:
     ) -> httpx.Response:
         url = f'/api/v3/stocks/{warehouse_id}'
         request_data = {'skus': tuple(skus)}
-        response = self.__api_client.post(url, json=request_data)
+        response = self.__api_client.post(
+            url=url,
+            json=request_data,
+            headers=self.headers,
+        )
         handle_error_status_code(response)
         return response
 
@@ -82,7 +100,11 @@ class WildberriesAPIConnection:
             if pagination_data is not None:
                 body['sort']['cursor'] |= pagination_data
 
-            response = self.__api_client.post(url, json=body)
+            response = self.__api_client.post(
+                url=url,
+                json=body,
+                headers=self.headers,
+            )
 
             handle_error_status_code(response)
             yield response
@@ -99,8 +121,12 @@ class WildberriesAPIConnection:
 
     def get_prices(self, quantity_status: QuantityStatus) -> httpx.Response:
         request_query_params = {'quantity': quantity_status.value}
-        url = '/public/api/v1/prices'
-        response = self.__api_client.get(url, params=request_query_params)
+        url = '/public/api/v1/info'
+        response = self.__api_client.get(
+            url=url,
+            params=request_query_params,
+            headers=self.headers,
+        )
         handle_error_status_code(response)
         return response
 
@@ -115,6 +141,10 @@ class WildberriesAPIConnection:
             } for nomenclature_price in nomenclature_prices
         ]
         url = '/public/api/v1/prices'
-        response = self.__api_client.post(url, json=request_data)
+        response = self.__api_client.post(
+            url=url,
+            json=request_data,
+            headers=self.headers,
+        )
         handle_error_status_code(response)
         return response
