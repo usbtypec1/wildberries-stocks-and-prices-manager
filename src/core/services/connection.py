@@ -56,6 +56,7 @@ class WildberriesAPIConnection:
             headers=self.headers,
         )
         handle_error_status_code(response)
+        return response
 
     def get_warehouses(self) -> httpx.Response:
         url = '/api/v3/warehouses'
