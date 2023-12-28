@@ -7,11 +7,12 @@ class ValidationError(Exception):
     pass
 
 
+@dataclass(frozen=True, slots=True)
 class WorksheetMissingError(ValidationError):
+    worksheet_name: str
 
-    def __init__(self, *args, worksheet_name: str):
-        super().__init__(*args)
-        self.worksheet_name = worksheet_name
+    def __str__(self):
+        return f'Worksheet {self.worksheet_name!r} is missing'
 
 
 class WorkbookValidationError(ValidationError):
