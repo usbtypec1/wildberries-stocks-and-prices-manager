@@ -5,4 +5,5 @@ from .nomenclature_sizes import *
 from .nomenclatures import *
 from .stocks_by_sku import *
 from .warehouse_stocks import *
+from .warehouse_stocks_rows import *
 from .warehouses import *
