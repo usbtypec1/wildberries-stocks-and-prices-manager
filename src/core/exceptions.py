@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import httpx
 
 
@@ -20,11 +22,15 @@ class WorkbookValidationError(ValidationError):
         self.row_number = row_number
 
 
+@dataclass(frozen=True, slots=True)
 class WildberriesAPIError(Exception):
+    response: httpx.Response
 
-    def __init__(self, *args, response: httpx.Response):
-        super().__init__(*args)
-        self.response = response
+    def __str__(self):
+        return (
+            f'Wildberries API error: {self.response.status_code=}\n'
+            f'Response: {self.response.text}'
+        )
 
 
 class UnauthorizedError(WildberriesAPIError):
