@@ -30,12 +30,7 @@ def map_warehouse_stocks(
 
 
 def parse_row(row: Iterable[Cell], row_number: int) -> WarehouseStocksRow:
-    try:
-        warehouse_id, sku, stocks_amount = [cell.value for cell in row]
-    except ValueError:
-        raise WorkbookValidationError(
-            message=f'Неправильное количество данных в строке №{row_number}'
-        )
+    warehouse_id, sku, stocks_amount = [cell.value for cell in row]
 
     try:
         return WarehouseStocksRow(
@@ -45,7 +40,7 @@ def parse_row(row: Iterable[Cell], row_number: int) -> WarehouseStocksRow:
         )
     except ValidationError:
         raise WorkbookValidationError(
-            message='Неправильный формат данных в строке №{row_number}'
+            message=f'Неправильный формат данных в строке №{row_number}'
         )
 
 
