@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from core.exceptions import WorkbookValidationError
 from core.models import WarehouseStocks, StocksBySku, WarehouseStocksRow
-from core.parsers.workbooks.common import get_workbook_by_name
+from core.parsers.workbooks.common import get_worksheet_by_name
 
 StocksBySkus: TypeAlias = list[StocksBySku]
 GroupedStocks: TypeAlias = defaultdict[int, StocksBySkus]
@@ -81,7 +81,7 @@ def group_stocks_by_warehouse_id(
 
 
 def parse_stocks_workbook(workbook: Workbook) -> list[WarehouseStocks]:
-    worksheet = get_workbook_by_name(
+    worksheet = get_worksheet_by_name(
         workbook=workbook,
         name='Остатки',
     )

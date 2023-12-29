@@ -3,10 +3,10 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 from core.exceptions import WorksheetMissingError
 
-__all__ = ('get_workbook_by_name',)
+__all__ = ('get_worksheet_by_name',)
 
 
-def get_workbook_by_name(*, workbook: Workbook, name: str) -> Worksheet:
+def get_worksheet_by_name(*, workbook: Workbook, name: str) -> Worksheet:
     try:
         return workbook[name]
     except KeyError:
