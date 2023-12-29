@@ -25,10 +25,10 @@ class WildberriesAPIConnection:
 
     def __init__(
             self,
-            api_client: WildberriesHTTPClient,
+            http_client: WildberriesHTTPClient,
             token: str,
     ):
-        self.__api_client = api_client
+        self.__http_client = http_client
         self.__token = token
 
     @cached_property
@@ -50,7 +50,7 @@ class WildberriesAPIConnection:
                 } for stock in stocks
             ]
         }
-        response = self.__api_client.put(
+        response = self.__http_client.put(
             url=url,
             json=request_data,
             headers=self.headers,
@@ -60,7 +60,7 @@ class WildberriesAPIConnection:
 
     def get_warehouses(self) -> httpx.Response:
         url = '/api/v3/warehouses'
-        response = self.__api_client.get(
+        response = self.__http_client.get(
             url=url,
             headers=self.headers,
         )
@@ -75,7 +75,7 @@ class WildberriesAPIConnection:
     ) -> httpx.Response:
         url = f'/api/v3/stocks/{warehouse_id}'
         request_data = {'skus': tuple(skus)}
-        response = self.__api_client.post(
+        response = self.__http_client.post(
             url=url,
             json=request_data,
             headers=self.headers,
@@ -97,7 +97,7 @@ class WildberriesAPIConnection:
             if pagination_data is not None:
                 body['settings']['cursor'] = {'limit': 1000} | pagination_data
 
-            response = self.__api_client.post(
+            response = self.__http_client.post(
                 url=url,
                 json=body,
                 headers=self.headers,
@@ -119,7 +119,7 @@ class WildberriesAPIConnection:
     def get_prices(self, quantity_status: QuantityStatus) -> httpx.Response:
         request_query_params = {'quantity': quantity_status.value}
         url = '/public/api/v1/info'
-        response = self.__api_client.get(
+        response = self.__http_client.get(
             url=url,
             params=request_query_params,
             headers=self.headers,
@@ -138,7 +138,7 @@ class WildberriesAPIConnection:
             } for nomenclature_price in nomenclature_prices
         ]
         url = '/public/api/v1/prices'
-        response = self.__api_client.post(
+        response = self.__http_client.post(
             url=url,
             json=request_data,
             headers=self.headers,
