@@ -61,6 +61,7 @@ def get_all_nomenclatures(
 ) -> list[Nomenclature]:
     nomenclatures_iterator = connection.iter_nomenclatures()
 
+    console.log('Загрузка номенклатур...')
     nomenclatures: list[Nomenclature] = []
     for nomenclatures_response in track(
             nomenclatures_iterator,

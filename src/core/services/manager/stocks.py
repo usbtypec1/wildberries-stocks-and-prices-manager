@@ -49,6 +49,7 @@ class StocksManager(ManagerService):
 
             warehouses_stocks: list[WarehouseStocks] = []
 
+            self._console.log('Загрузка остатков...')
             for skus_chunk in track(
                     sequence=chunks_iterator,
                     description='Загрузка остатков...',
