@@ -23,7 +23,6 @@ def map_warehouse_stocks(
         WarehouseStocks(
             warehouse_id=warehouse_id,
             stocks=stocks_by_sku,
-            category='',
         ) for warehouse_id, stocks_by_sku in
         stocks_grouped_by_warehouse_id.items()
     ]
