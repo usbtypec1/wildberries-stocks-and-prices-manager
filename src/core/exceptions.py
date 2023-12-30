@@ -56,3 +56,7 @@ class StocksUpdateError(WildberriesAPIError):
 
 class TooManyRequestsError(WildberriesAPIError):
     pass
+
+
+class WarehousesDoNotExistError(WildberriesAPIError):
+    pass
