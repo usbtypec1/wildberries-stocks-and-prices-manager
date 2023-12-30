@@ -1,172 +1,13 @@
-import collections
-import logging
 import pathlib
-import time
-from typing import DefaultDict
 
-import openpyxl
-from openpyxl.utils.exceptions import InvalidFileException
-from openpyxl.workbook import Workbook
 from rich.console import Console
-from rich.progress import track
 from rich.prompt import Prompt, Confirm
 
 from core import exceptions
-from core import models
-from core.helpers import grouper
-from core.parser import WorkbookParser
-from core.services.http_clients import closing_wildberries_api_http_client
-from core.services.wildberries_api import WildberriesAPIService
-from core.templates import generate_stocks_report_file, generate_template_file, generate_prices_report_file
+from core.services.manager import StocksManager
+from core.services.manager.prices import PricesManager
+from core.templates import generate_template_file
 from core.validators import validate_api_key
-
-
-def upload_prices(console: Console, api_key: str, file_path: str | pathlib.Path):
-    workbook = openpyxl.load_workbook(file_path, read_only=True)
-
-    parser = WorkbookParser(workbook)
-    try:
-        nomenclature_prices = parser.get_prices()
-    except exceptions.WorksheetMissingError as error:
-        console.log(f'В файле отсутствует страница "{error.worksheet_name}"')
-        return
-    console.log('Цены считаны из файла')
-
-    with closing_wildberries_api_http_client(api_key=api_key) as http_client:
-        wildberries_api_service = WildberriesAPIService(http_client, console)
-
-        for nomenclature_prices_group in track(
-                sequence=tuple(grouper(nomenclature_prices, n=1000)),
-                description='Загрузка цен...',
-        ):
-            wildberries_api_service.update_prices(nomenclature_prices_group)
-
-
-def upload_stocks(console: Console, api_key: str, file_path: str | pathlib.Path):
-    workbook = openpyxl.load_workbook(file_path, read_only=True)
-
-    parser = WorkbookParser(workbook)
-    try:
-        warehouses_stocks = parser.get_stocks()
-    except exceptions.WorksheetMissingError as error:
-        console.log(f'В файле отсутствует страница "{error.worksheet_name}"')
-        return
-    console.log('Остатки считаны из файла')
-
-    with closing_wildberries_api_http_client(api_key=api_key) as http_client:
-        wildberries_api_service = WildberriesAPIService(http_client, console)
-
-        for warehouse_stocks in warehouses_stocks:
-            console.log(f'Загрузка остатков в складе №{warehouse_stocks.warehouse_id}')
-
-            for stocks_group in track(
-                    sequence=tuple(grouper(warehouse_stocks.stocks, n=100)),
-                    description='Загрузка остатков...',
-            ):
-                try:
-                    wildberries_api_service.update_stocks(warehouse_stocks.warehouse_id, stocks_group)
-                except Exception:
-                    logging.exception('Error while updating stocks')
-
-
-def download_stocks(console: Console, api_key: str, file_path: str | pathlib.Path):
-    warehouse_id_and_category_to_stocks_by_skus: DefaultDict[str, list[models.StocksBySku]] = collections.defaultdict(
-        list)
-    category_to_skus: DefaultDict[str, set[str]] = collections.defaultdict(set)
-
-    with closing_wildberries_api_http_client(api_key=api_key) as http_client:
-        wildberries_api_service = WildberriesAPIService(http_client, console)
-
-        warehouses = wildberries_api_service.get_warehouses()
-        console.log('Информация о складах загружена')
-
-        for warehouse in warehouses:
-            console.log(f'Склад {warehouse.name} - ID {warehouse.id}')
-
-        for nomenclatures in track(
-                sequence=wildberries_api_service.iter_nomenclatures(),
-                description='Загрузка всех skus...',
-                console=console,
-        ):
-            for nomenclature in nomenclatures:
-                category_to_skus[nomenclature.object] |= {
-                    sku
-                    for size in nomenclature.sizes
-                    for sku in size.skus
-                }
-
-        for category, skus in category_to_skus.items():
-
-            for skus_group in track(
-                    sequence=grouper(skus, n=1000),
-                    description=f'Загрузка остатков по категории {category}',
-                    console=console,
-            ):
-                for warehouse in warehouses:
-                    stocks_by_skus = wildberries_api_service.get_stocks_by_skus(
-                        warehouse_id=warehouse.id, skus=skus_group,
-                    )
-                    if stocks_by_skus:
-                        warehouse_id_and_category = f'{warehouse.id}@{category}'
-                        warehouse_id_and_category_to_stocks_by_skus[warehouse_id_and_category] += stocks_by_skus
-                        break
-
-    warehouses_stocks = []
-    for warehouse_id_and_category, stocks_by_skus in warehouse_id_and_category_to_stocks_by_skus.items():
-        warehouse_id, category = warehouse_id_and_category.split('@')
-        warehouse_id = int(warehouse_id)
-
-        warehouses_stocks.append(
-            models.WarehouseStocks(
-                warehouse_id=warehouse_id,
-                category=category,
-                stocks=stocks_by_skus,
-            )
-        )
-    generate_stocks_report_file(file_path=file_path, warehouses_stocks=warehouses_stocks)
-    console.log('Остатки выгружены')
-
-
-def download_prices(console: Console, api_key: str, file_path: str | pathlib.Path):
-    category_to_nomenclature_prices: DefaultDict[str, list[models.NomenclaturePrice]] = collections.defaultdict(list)
-
-    with closing_wildberries_api_http_client(api_key=api_key) as http_client:
-        wildberries_api_service = WildberriesAPIService(http_client, console)
-
-        with console.status('Загрузка цен...', spinner='bouncingBall'):
-            nomenclature_prices = wildberries_api_service.get_prices(models.QuantityStatus.ANY)
-
-        nomenclature_id_to_nomenclature_price: dict[int, models.NomenclaturePrice] = {
-            nomenclature_price.nomenclature_id: nomenclature_price
-            for nomenclature_price in nomenclature_prices
-        }
-
-        for nomenclatures in track(wildberries_api_service.iter_nomenclatures()):
-
-            for nomenclature in nomenclatures:
-                nomenclature_price = nomenclature_id_to_nomenclature_price.get(nomenclature.id)
-                if nomenclature_price is None:
-                    continue
-                category_to_nomenclature_prices[nomenclature.object].append(nomenclature_price)
-
-    categories_prices = [
-        models.CategoryPrices(
-            category_name=category,
-            nomenclature_prices=nomenclature_prices,
-        ) for category, nomenclature_prices in category_to_nomenclature_prices.items()
-    ]
-
-    generate_prices_report_file(file_path=file_path, categories_prices=categories_prices)
-    console.log('Цены выгружены')
-
-
-def validate_excel_file(console: Console, file_path: pathlib.Path):
-    try:
-        workbook: Workbook = openpyxl.load_workbook(file_path)
-    except InvalidFileException:
-        console.print(f'[b][u]{file_path.name}[/u][/b] не является excel файлом')
-    else:
-        workbook.close()
 
 
 def terminate(console: Console):
@@ -179,7 +20,7 @@ def require_api_key(console: Console) -> str:
         api_key = Prompt.ask('Введите API ключ')
         try:
             validate_api_key(api_key)
-        except exceptions.ValidationError as error:
+        except exceptions.ValidationError:
             console.print('Неправильный API ключ')
         else:
             return api_key
@@ -187,14 +28,20 @@ def require_api_key(console: Console) -> str:
 
 def require_file_not_exists(console: Console, file_path: pathlib.Path):
     if file_path.exists():
-        is_replace_template_confirmed = Confirm.ask('Шаблон уже присутствует в директории. Заменить?')
+        text = 'Шаблон уже присутствует в директории. Заменить?'
+        is_replace_template_confirmed = Confirm.ask(text)
         if not is_replace_template_confirmed:
             terminate(console)
 
 
 def require_file(console: Console, file_path: pathlib.Path):
     if not file_path.exists():
-        console.print(f'Отсутствует файл [b][u]{file_path.name}[/u][/b] в текущей директории')
+        text = (
+            'Отсутствует файл'
+            f' [b][u]{file_path.name}[/u][/b]'
+            ' в текущей директории'
+        )
+        console.print(text)
         terminate(console)
 
 
@@ -218,25 +65,30 @@ def run(console: Console):
             file_path = pathlib.Path('./остатки.xlsx')
             require_file(console, file_path)
             api_key = require_api_key(console)
-            upload_stocks(console, api_key, file_path)
+            stocks_manager = StocksManager(console, api_key)
+            stocks_manager.upload(file_path)
         case 2:
             file_path = pathlib.Path('./цены.xlsx')
             require_file(console, file_path)
             api_key = require_api_key(console)
-            upload_prices(console, api_key, file_path)
+            prices_manager = PricesManager(console, api_key)
+            prices_manager.upload(file_path)
         case 3:
             file_path = pathlib.Path('./выгрузка остатков.xlsx')
             require_file_not_exists(console, file_path)
             api_key = require_api_key(console)
-            download_stocks(console, api_key, file_path)
+            stocks_manager = StocksManager(console, api_key)
+            stocks_manager.download(file_path)
         case 4:
             file_path = pathlib.Path('./выгрузка цен.xlsx')
             require_file_not_exists(console, file_path)
             api_key = require_api_key(console)
-            download_prices(console, api_key, file_path)
+            service = PricesManager(console, api_key)
+            service.download(file_path)
         case 5:
             file_path = pathlib.Path('./шаблон.xlsx')
             require_file_not_exists(console, file_path)
             generate_template_file(file_path)
             console.log('Шаблон сохранен')
+
     terminate(console)
