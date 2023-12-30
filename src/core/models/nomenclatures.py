@@ -1,10 +1,10 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from core.models import NomenclatureSize
 
-__all__ = ('Nomenclature',)
+__all__ = ('Nomenclature', 'NomenclatureWithPrice')
 
 
 class Nomenclature(BaseModel):
@@ -13,3 +13,13 @@ class Nomenclature(BaseModel):
     brand: str
     sizes: list[NomenclatureSize]
     updated_at: datetime = Field(alias='updatedAt')
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class NomenclatureWithPrice(Nomenclature):
+    price: int
+    discount: int
+    promocode: int
+
+    model_config = ConfigDict(populate_by_name=True)
