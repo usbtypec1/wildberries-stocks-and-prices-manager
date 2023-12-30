@@ -83,7 +83,7 @@ class WildberriesAPIConnection:
         handle_error_status_code(response)
         return response
 
-    def iter_nomenclatures(self) -> Generator[httpx.Response, None, None]:
+    def iter_nomenclatures(self) -> Generator[httpx.Response, bool, None]:
         pagination_data = None
         url = '/content/v2/get/cards/list'
 
@@ -104,17 +104,18 @@ class WildberriesAPIConnection:
             )
 
             handle_error_status_code(response)
-            yield response
+            should_repeat = yield response
 
-            response_data = try_parse_response_json(response)
+            if not should_repeat:
+                response_data = try_parse_response_json(response)
 
-            pagination_data = {
-                'updatedAt': response_data['cursor']['updatedAt'],
-                'nmID': response_data['cursor']['nmID']
-            }
+                pagination_data = {
+                    'updatedAt': response_data['cursor']['updatedAt'],
+                    'nmID': response_data['cursor']['nmID']
+                }
 
-            if response_data['cursor']['total'] < 1000:
-                break
+                if response_data['cursor']['total'] < 1000:
+                    break
 
     def get_prices(self, quantity_status: QuantityStatus) -> httpx.Response:
         request_query_params = {'quantity': quantity_status.value}
