@@ -1,2 +1,4 @@
-from parsers.http_responses.nomenclatures import *
-from parsers.http_responses.stocks import *
+from .nomenclatures import *
+from .prices import *
+from .stocks import *
+from .warehouses import *
