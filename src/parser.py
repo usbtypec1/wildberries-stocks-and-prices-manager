@@ -5,7 +5,8 @@ from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 from pydantic import ValidationError
 
-from core import exceptions, models
+import exceptions
+import models
 
 __all__ = ('WorkbookParser',)
 

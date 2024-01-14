@@ -12,6 +12,8 @@ pydantic = "^2.5.3"
 openpyxl = "^3.1.1"
 httpx = "^0.23.3"
 rich = "^13.3.2"
+fast-depends = "^2.3.1"
+sqlalchemy = "^2.0.25"
 
 
 [tool.poetry.group.dev.dependencies]

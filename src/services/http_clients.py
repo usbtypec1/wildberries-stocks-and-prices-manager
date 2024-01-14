@@ -2,7 +2,7 @@ import contextlib
 
 import httpx
 
-from core.models.http_clients import WildberriesHTTPClient
+from models.http_clients import WildberriesHTTPClient
 
 __all__ = ('closing_wildberries_http_client',)
 

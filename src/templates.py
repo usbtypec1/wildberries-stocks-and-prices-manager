@@ -5,7 +5,7 @@ from typing import Iterable
 import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 
-from core import models
+import models
 
 
 def generate_template_file(file_path: pathlib.Path) -> None:

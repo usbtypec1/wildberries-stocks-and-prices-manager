@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from core.models.nomenclature_prices import NomenclaturePrice
+from models.nomenclature_prices import NomenclaturePrice
 
 __all__ = ('CategoryPrices',)
 

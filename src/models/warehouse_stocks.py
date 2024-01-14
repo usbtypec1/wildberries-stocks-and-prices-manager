@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from core.models.stocks_by_sku import StocksBySku
+from models.stocks_by_sku import StocksBySku
 
 __all__ = ('WarehouseStocks',)
 

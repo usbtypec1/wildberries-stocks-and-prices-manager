@@ -6,9 +6,9 @@ from openpyxl.cell import Cell
 from openpyxl.workbook import Workbook
 from pydantic import ValidationError
 
-from core.exceptions import WorkbookValidationError
-from core.models import WarehouseStocks, StocksBySku, WarehouseStocksRow
-from core.parsers.workbooks.common import get_worksheet_by_name
+from exceptions import WorkbookValidationError
+from models import WarehouseStocks, StocksBySku, WarehouseStocksRow
+from parsers.workbooks.common import get_worksheet_by_name
 
 StocksBySkus: TypeAlias = list[StocksBySku]
 GroupedStocks: TypeAlias = defaultdict[int, StocksBySkus]

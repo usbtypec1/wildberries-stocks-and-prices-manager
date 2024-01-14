@@ -1,6 +1,6 @@
 import httpx
 
-from core.exceptions import (
+from exceptions import (
     BadRequestError,
     UnauthorizedError,
     PermissionDeniedError,

@@ -3,10 +3,10 @@ from functools import cached_property
 
 import httpx
 
-from core.enums import QuantityStatus
-from core.helpers.http import handle_error_status_code
-from core.helpers.parsers import try_parse_response_json
-from core.models import (
+from enums import QuantityStatus
+from helpers.http import handle_error_status_code
+from helpers.parsers import try_parse_response_json
+from models import (
     StocksBySku,
     NomenclaturePriceToUpdate,
     WildberriesHTTPClient,

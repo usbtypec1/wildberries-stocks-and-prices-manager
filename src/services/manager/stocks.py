@@ -4,22 +4,22 @@ import pathlib
 from openpyxl.workbook import Workbook
 from rich.progress import track
 
-from core.exceptions import WarehousesDoNotExistError
-from core.helpers import chunkify, count_chunks
-from core.models import WarehouseStocks
-from core.parsers.http_responses import (
+from exceptions import WarehousesDoNotExistError
+from helpers import chunkify, count_chunks
+from models import WarehouseStocks
+from parsers.http_responses import (
     parse_warehouses_response,
     parse_stocks_response,
 )
-from core.parsers.workbooks.stocks import parse_stocks_workbook
-from core.services.connection import WildberriesAPIConnection
-from core.services.http_clients import closing_wildberries_http_client
-from core.services.manager import ManagerService
-from core.services.nomenclatures import (
+from parsers.workbooks.stocks import parse_stocks_workbook
+from services.connection import WildberriesAPIConnection
+from services.http_clients import closing_wildberries_http_client
+from services.manager import ManagerService
+from services.nomenclatures import (
     get_all_nomenclatures,
     collect_nomenclatures_skus,
 )
-from core.services.workbook import closing_workbook
+from services.workbook import closing_workbook
 
 
 class StocksManager(ManagerService):

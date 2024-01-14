@@ -1,8 +1,8 @@
 import httpx
 from pydantic import TypeAdapter
 
-from core.helpers.parsers import try_parse_response_json
-from core.models import NomenclaturePrice
+from helpers.parsers import try_parse_response_json
+from models import NomenclaturePrice
 
 __all__ = ('parse_prices_response',)
 

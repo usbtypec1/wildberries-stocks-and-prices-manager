@@ -6,18 +6,18 @@ from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 from rich import progress
 
-from core.enums import QuantityStatus
-from core.helpers import chunkify
-from core.parsers.http_responses import parse_prices_response
-from core.parsers.workbooks.prices import parse_prices_workbook
-from core.services.connection import WildberriesAPIConnection
-from core.services.http_clients import closing_wildberries_http_client
-from core.services.manager.base import ManagerService
-from core.services.nomenclatures import (
+from enums import QuantityStatus
+from helpers import chunkify
+from parsers.http_responses import parse_prices_response
+from parsers.workbooks.prices import parse_prices_workbook
+from services.connection import WildberriesAPIConnection
+from services.http_clients import closing_wildberries_http_client
+from services.manager.base import ManagerService
+from services.nomenclatures import (
     merge_nomenclatures_and_prices,
     get_all_nomenclatures
 )
-from core.services.workbook import closing_workbook
+from services.workbook import closing_workbook
 
 
 class PricesManager(ManagerService):

@@ -5,7 +5,7 @@ from zipfile import BadZipFile
 import openpyxl
 from openpyxl.workbook import Workbook
 
-from core.exceptions import WorkbookValidationError
+from exceptions import WorkbookValidationError
 
 __all__ = ('closing_workbook',)
 

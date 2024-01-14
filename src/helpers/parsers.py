@@ -2,7 +2,7 @@ import json
 
 import httpx
 
-from core.exceptions import WildberriesAPIError
+from exceptions import WildberriesAPIError
 
 __all__ = ('try_parse_response_json',)
 

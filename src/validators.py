@@ -1,4 +1,4 @@
-from core import exceptions
+import exceptions
 
 
 def validate_api_key(api_key: str) -> None:

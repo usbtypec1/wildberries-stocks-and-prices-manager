@@ -5,9 +5,9 @@ from openpyxl.cell import Cell
 from openpyxl.workbook import Workbook
 from pydantic import ValidationError
 
-from core.exceptions import WorkbookValidationError
-from core.models import NomenclaturePriceToUpdate
-from core.parsers.workbooks.common import get_worksheet_by_name
+from exceptions import WorkbookValidationError
+from models import NomenclaturePriceToUpdate
+from parsers.workbooks.common import get_worksheet_by_name
 
 __all__ = ('parse_prices_workbook',)
 

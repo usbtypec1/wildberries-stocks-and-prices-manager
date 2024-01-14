@@ -3,11 +3,11 @@ import pathlib
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
 
-from core import exceptions
-from core.services.manager import StocksManager
-from core.services.manager.prices import PricesManager
-from core.templates import generate_template_file
-from core.validators import validate_api_key
+import exceptions
+from services.manager import StocksManager
+from services.manager.prices import PricesManager
+from templates import generate_template_file
+from validators import validate_api_key
 
 
 def terminate(console: Console):

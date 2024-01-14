@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from core.models import NomenclatureSize
+from models import NomenclatureSize
 
 __all__ = ('Nomenclature', 'NomenclatureWithPrice')
 

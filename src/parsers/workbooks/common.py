@@ -1,7 +1,7 @@
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
-from core.exceptions import WorksheetMissingError
+from exceptions import WorksheetMissingError
 
 __all__ = ('get_worksheet_by_name',)
 

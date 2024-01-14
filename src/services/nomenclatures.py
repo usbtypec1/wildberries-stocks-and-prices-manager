@@ -3,10 +3,10 @@ from collections.abc import Iterable
 from rich.console import Console
 from rich.progress import track
 
-from core.exceptions import WildberriesAPIError
-from core.models import Nomenclature, NomenclaturePrice, NomenclatureWithPrice
-from core.parsers.http_responses import parse_nomenclatures_response
-from core.services.connection import WildberriesAPIConnection
+from exceptions import WildberriesAPIError
+from models import Nomenclature, NomenclaturePrice, NomenclatureWithPrice
+from parsers.http_responses import parse_nomenclatures_response
+from services.connection import WildberriesAPIConnection
 
 
 def collect_nomenclature_skus(nomenclature: Nomenclature) -> set[str]:
