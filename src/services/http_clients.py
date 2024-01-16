@@ -4,7 +4,7 @@ import httpx
 
 from models.http_clients import WildberriesHTTPClient
 
-__all__ = ('closing_wildberries_http_client',)
+__all__ = ('closing_wildberries_http_client', 'get_http_client')
 
 
 @contextlib.contextmanager
@@ -18,3 +18,8 @@ def closing_wildberries_http_client(
             timeout=timeout,
     ) as http_client:
         yield WildberriesHTTPClient(http_client)
+
+
+def get_http_client() -> WildberriesHTTPClient:
+    with closing_wildberries_http_client() as http_client:
+        yield http_client

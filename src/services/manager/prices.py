@@ -1,88 +1,107 @@
 import contextlib
 import pathlib
 import time
+from collections.abc import Generator
 
+from fast_depends import Depends, inject
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
-from rich import progress
+from rich import progress, get_console
+from rich.console import Console
 
+from database import queries
+from dependencies import get_connection, require_skip_nomenclatures_downloading
 from enums import QuantityStatus
 from helpers import chunkify
+from models import NomenclaturePriceWithSubjectName
 from parsers.http_responses import parse_prices_response
 from parsers.workbooks.prices import parse_prices_workbook
 from services.connection import WildberriesAPIConnection
-from services.http_clients import closing_wildberries_http_client
-from services.manager.base import ManagerService
-from services.nomenclatures import (
-    merge_nomenclatures_and_prices,
-    get_all_nomenclatures
-)
+from services.nomenclatures import download_all_nomenclatures
 from services.workbook import closing_workbook
 
 
-class PricesManager(ManagerService):
+def iter_prices(
+        *,
+        limit: int = 1000,
+        offset: int = 0,
+) -> Generator[list[NomenclaturePriceWithSubjectName], None, None]:
+    while True:
+        prices = queries.get_prices(limit=limit, offset=offset)
+        if prices:
+            yield prices
+        else:
+            break
+        offset += limit
 
-    def download(self, destination_path: pathlib.Path) -> None:
-        with closing_wildberries_http_client() as http_client:
-            connection = WildberriesAPIConnection(
-                http_client=http_client,
-                token=self._token,
-            )
 
-            self._console.log('Загрузка цен...')
-            prices_response = connection.get_prices(QuantityStatus.ANY)
-            self._console.log('Цены загружены')
+@inject
+def download(
+        destination_path: pathlib.Path,
+        console: Console = Depends(get_console),
+        connection: WildberriesAPIConnection = Depends(get_connection),
+        skip_nomenclatures_downloading: bool = Depends(
+            require_skip_nomenclatures_downloading,
+        ),
+) -> None:
+    if not skip_nomenclatures_downloading:
+        download_all_nomenclatures(connection=connection)
 
-            prices = parse_prices_response(prices_response)
+    console.log('Загрузка цен из API Wildberries...')
+    prices_response = connection.get_prices(QuantityStatus.ANY)
+    console.log('Цены из API Wildberries загружены')
 
-            nomenclatures = get_all_nomenclatures(
-                connection=connection,
-                console=self._console,
-            )
+    prices = parse_prices_response(prices_response)
 
-        nomenclatures_with_prices = merge_nomenclatures_and_prices(
-            nomenclatures=nomenclatures,
-            prices=prices,
-        )
+    queries.add_nomenclature_prices(prices)
 
-        workbook = Workbook(write_only=True)
-        headers = ('Категория товара', 'nm ID', 'Новая цена', 'Скидка')
-        with contextlib.closing(workbook) as workbook:
-            workbook: Workbook
-            worksheet: Worksheet = workbook.create_sheet('Цены')
-            worksheet.append(headers)
+    console.log('Сохранение цен в файл...')
 
-            for nomenclature in nomenclatures_with_prices:
+    workbook = Workbook(write_only=True)
+
+    headers = ('Категория товара', 'nm ID', 'Новая цена', 'Скидка')
+
+    with contextlib.closing(workbook) as workbook:
+        workbook: Workbook
+        worksheet: Worksheet = workbook.create_sheet('Цены')
+        worksheet.append(headers)
+
+        for prices in iter_prices():
+            for nomenclature_price in prices:
                 worksheet.append((
-                    nomenclature.subject_name,
-                    nomenclature.id,
-                    nomenclature.price,
-                    nomenclature.discount,
+                    nomenclature_price.subject_name,
+                    nomenclature_price.nomenclature_id,
+                    nomenclature_price.price,
+                    nomenclature_price.discount,
                 ))
 
-            workbook.save(destination_path)
+    workbook.save(destination_path)
 
-    def upload(self, file_path: pathlib.Path) -> None:
-        with closing_workbook(file_path) as workbook:
-            nomenclature_prices = parse_prices_workbook(workbook)
+    console.log('Цены записаны в файл')
 
-        nomenclature_prices_chunks = chunkify(
-            items=nomenclature_prices,
-            chunk_size=1000,
-        )
 
-        with closing_wildberries_http_client() as http_client:
-            connection = WildberriesAPIConnection(
-                http_client=http_client,
-                token=self._token,
-            )
+@inject
+def upload(
+        file_path: pathlib.Path,
+        console: Console = Depends(get_console),
+        connection: WildberriesAPIConnection = Depends(get_connection),
+) -> None:
+    with closing_workbook(file_path) as workbook:
+        nomenclature_prices = parse_prices_workbook(workbook)
 
-            for nomenclature_prices_chunk in progress.track(
-                    nomenclature_prices_chunks,
-                    description='Загрузка цен...',
-                    console=self._console,
-            ):
-                time.sleep(0.1)
-                connection.update_prices(
-                    nomenclature_prices=nomenclature_prices_chunk
-                )
+    nomenclature_prices_chunks = chunkify(
+        items=nomenclature_prices,
+        chunk_size=1000,
+    )
+
+    total_count = len(nomenclature_prices)
+    loaded_count: int = 0
+
+    for nomenclature_prices_chunk in nomenclature_prices_chunks:
+        time.sleep(0.1)
+        connection.update_prices(nomenclature_prices_chunk)
+        loaded_count += len(nomenclature_prices_chunk)
+
+        console.log(f'[{loaded_count}/{total_count}] Загрузка цен...')
+
+    console.log('Цены загружены')

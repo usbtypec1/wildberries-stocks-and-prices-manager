@@ -7,7 +7,10 @@ from sqlalchemy.orm import Session
 
 from database import models as db_models
 from database.session_factory import get_session
-from models import Nomenclature, NomenclaturePrice, StocksBySku
+from models import (
+    Nomenclature, NomenclaturePrice, StocksBySku,
+    WarehouseStocksRow, NomenclaturePriceWithSubjectName
+)
 
 
 @inject
@@ -63,7 +66,7 @@ def add_sku_stocks(
         for stock in stocks
     ]
 
-    statement = insert(db_models.SkuStocks).values(values)
+    statement = insert(db_models.SkuStock).values(values)
     statement = statement.on_conflict_do_update(
         index_elements=['warehouse_id', 'sku'],
         set_={'amount': statement.excluded.amount},
@@ -130,3 +133,68 @@ def count_skus(
     statement = select(func.count(db_models.NomenclatureSku))
     result = session.execute(statement)
     return result.first()[0]
+
+
+@inject
+def get_stocks(
+        limit: int = 1000,
+        offset: int = 0,
+        session: Session = Depends(get_session, use_cache=False),
+):
+    statement = (
+        select(
+            db_models.NomenclatureSku.sku,
+            db_models.SkuStock.warehouse_id,
+            db_models.SkuStock.amount,
+        )
+        .join(
+            db_models.NomenclatureSku,
+            onclause=db_models.SkuStock.sku == db_models.NomenclatureSku.sku
+        )
+        .join(
+            db_models.Nomenclature,
+            onclause=(
+                    db_models.NomenclatureSku.nomenclature_id
+                    == db_models.Nomenclature.id
+            ),
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+    result = session.execute(statement)
+    return [
+        WarehouseStocksRow(
+            sku=sku,
+            warehouse_id=warehouse_id,
+            stocks_amount=amount,
+        )
+        for sku, warehouse_id, amount in result.all()
+    ]
+
+
+@inject
+def get_prices(
+        limit: int = 1000,
+        offset: int = 0,
+        session: Session = Depends(get_session, use_cache=False),
+) -> list:
+    statement = (
+        select(
+            db_models.Nomenclature.id,
+            db_models.Nomenclature.subject_name,
+            db_models.Nomenclature.price,
+            db_models.Nomenclature.discount,
+        )
+        .limit(limit)
+        .offset(offset)
+    )
+    result = session.execute(statement)
+    return [
+        NomenclaturePriceWithSubjectName(
+            nomenclature_id=nomenclature_id,
+            subject_name=subject_name,
+            price=price,
+            discount=discount,
+        )
+        for nomenclature_id, subject_name, price, discount in result.all()
+    ]
